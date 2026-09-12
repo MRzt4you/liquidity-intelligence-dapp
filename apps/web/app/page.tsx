@@ -1,0 +1,109 @@
+'use client';
+import { useEffect, useMemo, useState } from 'react';
+
+const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+
+export default function Home() {
+  const [events, setEvents] = useState<any[]>([]);
+  const [metrics, setMetrics] = useState<any>({});
+  const [filter, setFilter] = useState('all');
+  const [chain, setChain] = useState('solana');
+  const [status, setStatus] = useState('CONNECTING');
+
+  useEffect(() => {
+    const wsurl = API.replace(/^http/, 'ws');
+    const ws = new WebSocket(wsurl);
+    ws.onopen = () => setStatus('LIVE');
+    ws.onclose = () => setStatus('OFFLINE');
+    ws.onerror = () => setStatus('ERROR');
+    ws.onmessage = (e) => {
+      try {
+        setEvents((v) => [JSON.parse(e.data), ...v].slice(0, 200));
+      } catch {}
+    };
+
+    const timer = setInterval(async () => {
+      try {
+        const response = await fetch(`${API}/api/metrics`, { cache: 'no-store' });
+        setMetrics(await response.json());
+      } catch {
+        setStatus('OFFLINE');
+      }
+    }, 2000);
+
+    return () => { ws.close(); clearInterval(timer); };
+  }, []);
+
+  const visible = useMemo(
+    () => events.filter((e) => (filter === 'all' || e.type === filter) && (chain === 'all' || e.chain === chain)),
+    [events, filter, chain]
+  );
+
+  const source = metrics.sources || {};
+
+  return <main>
+    <header>
+      <div className="brand"><b>LIQUIDITY INTELLIGENCE</b><span className={status === 'LIVE' ? 'live' : ''}>● {status}</span></div>
+      <nav>
+        <button className={chain === 'solana' ? 'active' : ''} onClick={() => setChain('solana')}>SOLANA</button>
+        <button className={chain === 'bnb' ? 'active' : ''} onClick={() => setChain('bnb')}>BNB</button>
+      </nav>
+    </header>
+
+    <section className="hero">
+      <div>
+        <div className="eyebrow">REAL ON-CHAIN DATA / LIQUIDITY MATRIX / SMART MONEY</div>
+        <h1>{chain.toUpperCase()} Intelligence Terminal</h1>
+        <p>This production build accepts blockchain events only. No demo feed, random values, paper positions, or synthetic fallback data.</p>
+      </div>
+      <div className="sourcebox">
+        <small>DATA SOURCES</small>
+        <strong>Solana RPC · BSC WS · PumpPortal</strong>
+        <span>Source status is shown below. If a source is unavailable, the UI reports NO DATA/OFFLINE.</span>
+      </div>
+    </section>
+
+    <section className="grid">
+      <Card t="EVENTS" v={events.length} d="real normalized events" />
+      <Card t="SOLANA" v={metrics.solanaEvents || 0} d={source.solana || 'WAITING'} />
+      <Card t="BNB" v={metrics.bnbEvents || 0} d={source.bnb || 'WAITING'} />
+      <Card t="PUMPPORTAL" v={metrics.pumpEvents || 0} d={source.pumpportal || 'WAITING'} />
+    </section>
+
+    <section className="control">
+      <div><small>DATA POLICY</small><b>REAL DATA ONLY</b><span> No mock / no demo / no synthetic fallback</span></div>
+      <div><small>LATENCY</small><b>{metrics.latencyMs || 0} ms</b></div>
+      <div><small>API MODE</small><b>READ-ONLY SCANNER</b></div>
+    </section>
+
+    <section className="toolbar">
+      {['all', 'token_create', 'trade', 'pool_create', 'migration', 'log', 'block', 'chain_status'].map((x) =>
+        <button key={x} className={filter === x ? 'active' : ''} onClick={() => setFilter(x)}>{x.toUpperCase()}</button>
+      )}
+    </section>
+
+    <section className="matrix">
+      <div className="panel">
+        <div className="panelhead"><h2>LIVE LIQUIDITY MATRIX</h2><span>{visible.length} events</span></div>
+        {visible.length ? visible.map((e, i) => <div className="event" key={`${e.txHash || e.ts}-${i}`}>
+          <i />
+          <div className="eventmain"><b>{String(e.type || 'event').replaceAll('_', ' ').toUpperCase()}</b><span>{e.symbol || e.token || e.pool || e.txHash || e.source}</span></div>
+          <div className="eventmeta"><span>{e.side || e.chain}</span>{e.signal && <strong className={e.signal.score >= 68 ? 'good' : ''}>{e.signal.state} {e.signal.score}</strong>}</div>
+        </div>) : <div className="empty">NO DATA — waiting for real blockchain events.</div>}
+      </div>
+      <aside className="panel">
+        <h2>INTELLIGENCE</h2>
+        <M n="Data Mode" v="REAL ONLY" />
+        <M n="Solana RPC" v={source.solana || 'WAITING'} />
+        <M n="BNB RPC" v={source.bnb || 'WAITING'} />
+        <M n="PumpPortal" v={source.pumpportal || 'WAITING'} />
+        <M n="Smart Money" v="SCORING" />
+        <M n="Liquidity Matrix" v="11 ENGINES" />
+        <M n="Synthetic Data" v="DISABLED" />
+      </aside>
+    </section>
+  </main>;
+}
+
+function Card(p: any) { return <div className="card"><small>{p.t}</small><strong>{p.v}</strong><p>{p.d}</p></div>; }
+function M(p: any) { return <div className="metric"><span>{p.n}</span><b>{p.v}</b></div>; }
