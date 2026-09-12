@@ -1,5 +1,5 @@
 name = "liquidity-intelligence-dapp"
-main = "src/index.ts"
+main = "stampede-worker.ts"
 compatibility_date = "2026-09-12"
 
 [assets]
