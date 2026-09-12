@@ -1,0 +1,3 @@
+'use client';
+import {useEffect} from 'react';
+export default function Error({reset}:{error:Error & {digest?:string};reset:()=>void}){useEffect(()=>{},[]);return <main style={{minHeight:'100vh',display:'grid',placeItems:'center',background:'#05080b',color:'#dce5ef',fontFamily:'ui-monospace,monospace'}}><div style={{maxWidth:520,padding:28,border:'1px solid #26343f',background:'#090e14'}}><b style={{color:'#63e8aa'}}>HANZI / TERMINAL ERROR</b><p style={{color:'#718094',fontSize:12,lineHeight:1.7}}>The interface encountered an error. No synthetic market data was generated.</p><button onClick={()=>reset()} style={{padding:'9px 13px',background:'#0b1714',border:'1px solid #315846',color:'#7debb7',cursor:'pointer'}}>RETRY TERMINAL</button></div></main>}
