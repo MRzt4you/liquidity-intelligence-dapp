@@ -1,0 +1,31 @@
+services:
+  - type: web
+    name: liquidity-intelligence-api
+    runtime: node
+    rootDir: apps/api
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: API_PORT
+        value: "10000"
+      - key: SOLANA_WS_URL
+        sync: false
+      - key: BNB_WS_URL
+        sync: false
+      - key: PUMPPORTAL_WS_URL
+        value: wss://pumpportal.fun/api/data
+      - key: BNB_LOG_ADDRESSES
+        value: ""
+      - key: BNB_LOG_TOPICS
+        value: ""
+
+  - type: web
+    name: liquidity-intelligence-web
+    runtime: node
+    rootDir: apps/web
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NEXT_PUBLIC_API_URL
+        value: https://liquidity-intelligence-api.onrender.com
