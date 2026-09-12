@@ -8,9 +8,7 @@
     "next": "latest",
     "react": "latest",
     "react-dom": "latest",
-    "recharts": "latest"
-  },
-  "devDependencies": {
+    "recharts": "latest",
     "typescript": "latest",
     "@types/node": "latest",
     "@types/react": "latest",
