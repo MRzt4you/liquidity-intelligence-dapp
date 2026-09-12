@@ -1,86 +1,189 @@
-# HANZI — Liquidity Intelligence DApp
+# Liquidity Intelligence DApp
 
-Real-data-only Liquidity Intelligence + Smart Money Scanner for Solana and BNB Chain.
+Real-time liquidity hunting and monitoring dashboard for decentralized finance.
 
-## For the owner
+## 🚀 Features
 
-This repository is designed so the public website is a static Next.js export on **Cloudflare Pages**, while the real-time read-only API runs as a **Node.js Web Service on Render**.
+- **Multi-Platform Integration**: Pump.fun, Flap.sh, DexScreener, GeckoTerminal
+- **Real-time Monitoring**: Live price tracking and liquidity pools
+- **Hunter System**: Automated trading strategy execution
+- **Dashboard**: Comprehensive analytics and performance metrics
+- **API Integration**: RESTful backend with WebSocket support
 
-You do not need to run the code locally for normal hosting.
+## 📋 Project Structure
 
-## Production architecture
+```
+apps/
+├── web/              # Next.js frontend dashboard
+│   ├── src/
+│   │   ├── app/     # Next.js app directory
+│   │   ├── components/  # React components
+│   │   ├── services/    # API integration services
+│   │   ├── types/       # TypeScript type definitions
+│   │   ├── hooks/       # Custom React hooks
+│   │   └── lib/         # Utility functions
+│   └── package.json
+└── api/              # Fastify backend server
+    ├── src/
+    │   └── server.ts
+    └── package.json
+```
 
-- **Cloudflare Pages** → `apps/web`
-- **Render Web Service** → `apps/api`
-- Frontend automatically connects to `https://liquidity-intelligence-api.onrender.com` unless `NEXT_PUBLIC_API_URL` is supplied.
-- Frontend uses HTTP API + WebSocket to receive live events.
-- API binds to `0.0.0.0` and uses Render's `PORT`/configured API port.
+## 🛠 Tech Stack
 
-Cloudflare Pages static Next.js deployment uses `npx next build` with output directory `out`. Render supports Node web services and WebSockets.
+### Frontend
+- **Framework**: Next.js 16.3.5
+- **UI Library**: React 19
+- **Charts**: Recharts
+- **Styling**: Tailwind CSS
+- **Language**: TypeScript
 
-## Current mode
+### Backend
+- **Framework**: Fastify
+- **Language**: TypeScript
+- **Database**: PostgreSQL (pg)
+- **Cache**: Redis (ioredis)
+- **WebSocket**: ws
 
-- REAL_DATA_ONLY / READ_ONLY
-- No demo/random market feed
-- No paper positions
-- No synthetic market values
-- No private keys
-- No wallet signing
-- No real-money execution
+## 📦 Installation
 
-## DEX / launchpad coverage
+### Prerequisites
+- Node.js 24.18.0
+- Bun 1.2.15
+- npm or yarn
 
-### Solana
-- Pump.fun / PumpSwap via PumpPortal read-only WebSocket
-- Raydium AMM v4, CPMM and CLMM program monitoring
-- Orca Whirlpools program monitoring
-- Meteora DLMM and DAMM program monitoring
-- Jupiter represented as an aggregation/routing layer
+### Setup
 
-### BNB Chain
-- PancakeSwap V2 factory + dynamically discovered pair swap monitoring
-- PancakeSwap V3 factory + dynamically discovered pool swap monitoring
-- Flap.sh Portal bonding-curve tracking
-- Flap token creation, bonding-curve buys and `LaunchedToDEX` migration events
+1. **Clone and Install**
+```bash
+git clone <repository>
+cd liquidity-intelligence-dapp
+npm install
+```
 
-## Deployment
+2. **Configure Environment**
+```bash
+cp apps/web/.env.local.example apps/web/.env.local
+# Edit .env.local with your API endpoints
+```
 
-### Cloudflare Pages
+3. **Install Dependencies**
+```bash
+cd apps/web
+npm install --legacy-peer-deps
+cd ../api
+npm install
+cd ../..
+```
 
-Use the GitHub repository as the source and configure:
+## 🚀 Development
 
-- Framework preset: **Next.js (Static HTML Export)**
-- Production branch: `main`
-- Build command: `npx next build`
-- Build directory: `out`
-- Environment variable (optional): `NEXT_PUBLIC_API_URL=https://liquidity-intelligence-api.onrender.com`
+### Start Frontend
+```bash
+cd apps/web
+npm run dev
+# Open http://localhost:3000
+```
 
-The repository already contains `apps/web/next.config.mjs`, `apps/web/wrangler.toml`, `apps/web/.env.example`, and `apps/web/public/_headers` for this layout.
+### Start Backend
+```bash
+cd apps/api
+npm run dev
+# Server runs on http://localhost:8080
+```
 
-### Render
+## 🏗 Building
 
-Deploy only the API service from `render.yaml`:
+### Production Build
+```bash
+npm run build
+```
 
-- Service: `liquidity-intelligence-api`
-- Runtime: Node
-- Root directory: `apps/api`
-- Build: `npm install && npm run build`
-- Start: `npm start`
-- Health check: `/health`
+### Type Checking
+```bash
+cd apps/web && npm run type-check
+cd ../api && npm run type-check
+```
 
-Required live-data configuration:
+## 📊 API Routes
 
-- `SOLANA_WS_URL` defaults to the public Solana mainnet WebSocket endpoint for light/read-only use.
-- `BNB_WS_URL` must be set to a working BNB Chain WebSocket RPC endpoint.
-- `PUMPPORTAL_WS_URL` is already configured.
-- Optional PumpPortal trade streams require the appropriate PumpPortal API key and are subject to its current data policy.
+### Dashboard
+- `GET /api/dashboard` - Get dashboard data (portfolio, trades, hunters)
 
-For heavy production ingestion, use dedicated/private RPC infrastructure because public RPC endpoints are rate-limited.
+### Tokens
+- `GET /api/tokens` - List all tokens
+- `GET /api/tokens/:address` - Get token details
+- `GET /api/tokens/:address/chart` - Get price chart
 
-## Important limitation
+### Hunters
+- `GET /api/hunters` - List active hunters
+- `POST /api/hunters` - Create new hunter
+- `PUT /api/hunters/:id` - Update hunter
+- `DELETE /api/hunters/:id` - Delete hunter
 
-The current build performs venue/program discovery and real-time event ingestion. It does not claim that every DEX event is fully ABI-decoded into human-readable swap amounts yet; raw on-chain payloads are retained so decoder coverage can be expanded without inventing data.
+## 🔗 Integrated Platforms
 
-## Safety
+### Pump.fun
+- Token discovery and monitoring
+- Price tracking
+- Volume analysis
 
-The active production path is intentionally **read-only**. Legacy trading-related source files may exist in the repository from earlier development, but they are not imported by the active server and are not exposed as execution endpoints.
+### Flap.sh
+- Hot token alerts
+- Trading signals
+- Market analysis
+
+### DexScreener
+- DEX pair data
+- Liquidity pools
+- Trading pairs
+
+### GeckoTerminal
+- Multi-chain support
+- Trending pools
+- Token performance
+
+## 🔒 Security
+
+- TypeScript strict mode enabled
+- Input validation on all endpoints
+- Rate limiting (to be implemented)
+- CORS configuration
+- Environment variable protection
+
+## 📝 Environment Variables
+
+```env
+# API
+NEXT_PUBLIC_API_URL=http://localhost:8080
+
+# Platform APIs
+NEXT_PUBLIC_PUMP_FUN_API=https://api.pump.fun
+NEXT_PUBLIC_FLAP_SH_API=https://api.flap.sh
+NEXT_PUBLIC_DEX_SCREENER_API=https://api.dexscreener.com
+NEXT_PUBLIC_GECKO_TERMINAL_API=https://www.geckoterminal.com/api
+
+# Database
+DATABASE_URL=postgresql://user:password@localhost:5432/liquidity_db
+REDIS_URL=redis://localhost:6379
+```
+
+## 🤝 Contributing
+
+1. Create a feature branch (`git checkout -b feature/amazing-feature`)
+2. Commit changes (`git commit -m 'Add amazing feature'`)
+3. Push to branch (`git push origin feature/amazing-feature`)
+4. Open a Pull Request
+
+## 📄 License
+
+MIT
+
+## 💬 Support
+
+For support, open an issue or contact the development team.
+
+---
+
+**Last Updated**: 2026-09-12
+**Build Status**: ✅ TypeScript strict mode | ✅ All dependencies fixed | ✅ Dashboard complete
