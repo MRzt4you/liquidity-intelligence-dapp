@@ -1,4 +1,5 @@
 'use client';
+import './stampede.css';
 import {useEffect,useMemo,useState} from 'react';
 
 type Row=Record<string,any>;
