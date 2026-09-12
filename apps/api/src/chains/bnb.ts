@@ -3,9 +3,6 @@ import { NormalizedEvent } from '../types';
 
 const PAIR_CREATED='0x0d3648bd0f6ba80134a33ba9275ac585d9d315f0ad8355cddefde31afa28d0e9';
 const SWAP_V2='0xd78ad95fa46c994b6551d0da85fc275fe613ce37657fb8d5e3d130840159d822';
-const MINT_V2='0x4c209b5fc8ad5078d2f4e1e4f3a1f5f3a8d7d2e1e7d2a0b6b7a1e8f2c4f5c1d1';
-const BURN_V2='0xdccd412f0b125b2a3a6f0c5f3d6e7a8b9c0d1e2f3a4b5c6d7e8f90123456789';
-const SYNC_V2='0x1c411e9a96e5d7e2f7f0e7c8f4f4e8e5e5b7e3a8d0e4e2e3f7b9c4f1c2d5a4';
 const POOL_CREATED_V3='0x783cca1c0412dd0d695e784568c96da2e9c22ff989357a2e8b1d9b2b4e6b7118';
 const SWAP_V3='0x19b47279256b2a23a1665c810c8d55a1758940ee09377d4f8d26497a3577dc83';
 const FLAP_TOKEN_CREATED='0x504e7f360b2e5fe33cbaaae4c593bc55305328341bf79009e43e0e3b7f699603';
@@ -16,10 +13,8 @@ const V2_FACTORY='0xca143ce32fe78f1f7019d7d551a6402fc5350c73';
 const V3_FACTORY='0x0bfbcf9fa4f9c56b0f40a671ad40e0805a091865';
 const FLAP_PORTAL='0xe2ce6ab80874fa9fa2aae65d277dd6b8e65c9de0';
 
-const word=(data:string,index:number)=>{
- const h=data.replace(/^0x/,''); return h.slice(index*64,(index+1)*64);
-};
-const addr=(topic:string)=>'0x'+topic.slice(-40);
+const word=(data:string,index:number)=>data.replace(/^0x/,'').slice(index*64,(index+1)*64);
+const addr=(topicOrWord:string)=>'0x'+topicOrWord.slice(-40);
 const u256=(data:string,index:number)=>{try{return BigInt('0x'+word(data,index));}catch{return 0n}};
 const num=(x:bigint)=>Number(x);
 
@@ -49,13 +44,13 @@ export class BnbAdapter {
     const base:any={chain:'bnb',source:'bsc-rpc',ts:Date.now(),txHash:e.transactionHash,blockNumber:e.blockNumber?parseInt(e.blockNumber,16):undefined,pool:e.address,raw:e};
 
     if(emitter===V2_FACTORY && topic===PAIR_CREATED){
-      this.cb({...base,type:'pool_create',dex:'pancakeswap-v2',dexKind:'v2',token0:addr(e.topics[1]),token1:addr(e.topics[2])}); return;
+      this.cb({...base,type:'pool_create',dex:'pancakeswap-v2',dexKind:'v2',token0:addr(e.topics[1]),token1:addr(e.topics[2]),pool:'0x'+word(e.data,0)}); return;
     }
     if(emitter===V3_FACTORY && topic===POOL_CREATED_V3){
       this.cb({...base,type:'pool_create',dex:'pancakeswap-v3',dexKind:'v3',token0:addr(e.topics[1]),token1:addr(e.topics[2]),feeTier:parseInt(e.topics[3],16),pool:'0x'+word(e.data,1)}); return;
     }
     if(emitter===FLAP_PORTAL && topic===FLAP_TOKEN_CREATED){
-      this.cb({...base,type:'token_create',dex:'flap',dexKind:'bonding_curve',token:addr(e.topics[1])}); return;
+      this.cb({...base,type:'token_create',dex:'flap',dexKind:'bonding_curve',token:'0x'+word(e.data,3),creator:'0x'+word(e.data,1)}); return;
     }
     if(emitter===FLAP_PORTAL && topic===FLAP_BOUGHT){
       const token='0x'+word(e.data,1); const buyer='0x'+word(e.data,2); const eth=u256(e.data,4);
@@ -66,8 +61,7 @@ export class BnbAdapter {
     }
     if(topic===SWAP_V2){
       const amount0In=u256(e.data,0), amount1In=u256(e.data,1), amount0Out=u256(e.data,2), amount1Out=u256(e.data,3);
-      const side=amount0In>0n||amount1In>0n?'swap_in':'swap_out';
-      this.cb({...base,type:'trade',dex:'pancakeswap-v2',dexKind:'v2',wallet:addr(e.topics[1]),side:side==='swap_in'?'buy':'sell',amountQuote:num(amount0In+amount1In+amount0Out+amount1Out),amountToken:num(amount0Out+amount1Out)}); return;
+      this.cb({...base,type:'trade',dex:'pancakeswap-v2',dexKind:'v2',wallet:addr(e.topics[1]),side:amount0In>0n||amount1In>0n?'buy':'sell',amountQuote:num(amount0In+amount1In+amount0Out+amount1Out),amountToken:num(amount0Out+amount1Out)}); return;
     }
     if(topic===SWAP_V3){
       const amount0=BigInt('0x'+word(e.data,0)), amount1=BigInt('0x'+word(e.data,1));
