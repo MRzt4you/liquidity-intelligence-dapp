@@ -29,6 +29,13 @@ export default {
       if (url.pathname === '/api/stampede/radar') return json({ windowS, rows:radar(trades, rotations, now, Math.max(60, Number(url.searchParams.get('span') || windowS))).slice(0, Number(url.searchParams.get('limit') || 50)) });
       if (url.pathname === '/api/stampede/flow') { const token=url.searchParams.get('token'); if(!token) return json({error:'token query is required'},400); return json(flow(rotations, token, Number(url.searchParams.get('limit')||100))); }
       if (url.pathname === '/api/stampede/evidence') return json({ rows:evidence(rotations,url.searchParams.get('token')||undefined,Number(url.searchParams.get('limit')||200)) });
+      if (url.pathname === '/api/stampede/map') {
+        const main=rotations.filter(r=>r.grade==='direct'||r.grade==='clean');
+        const edgeMap=new Map<string,{from:string,to:string,wallets:Set<string>,sequences:number}>();
+        for(const r of main){const k=`${r.sellToken}|${r.buyToken}`;const e=edgeMap.get(k)||{from:r.sellToken,to:r.buyToken,wallets:new Set<string>(),sequences:0};e.wallets.add(r.wallet);e.sequences++;edgeMap.set(k,e)}
+        const nodes=new Set<string>(); for(const e of edgeMap.values()){nodes.add(e.from);nodes.add(e.to)}
+        return json({nodes:[...nodes].map(id=>({id})),edges:[...edgeMap.values()].map(e=>({from:e.from,to:e.to,wallets:e.wallets.size,sequences:e.sequences})).sort((a,b)=>b.wallets-a.wallets).slice(0,500)});
+      }
       return json({error:'Not found'},404);
     } catch (error) { return json({ error: error instanceof Error ? error.message : 'stampede engine error' }, 500); }
   }
