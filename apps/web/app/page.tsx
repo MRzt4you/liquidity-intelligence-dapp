@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useMemo, useState } from 'react';
-const API=process.env.NEXT_PUBLIC_API_URL||'http://localhost:4000';
+const API=process.env.NEXT_PUBLIC_API_URL||'https://liquidity-intelligence-api.onrender.com';
 export default function Home(){
  const [events,setEvents]=useState<any[]>([]),[metrics,setMetrics]=useState<any>({}),[dexes,setDexes]=useState<any[]>([]),[filter,setFilter]=useState('all'),[chain,setChain]=useState('solana'),[status,setStatus]=useState('CONNECTING');
  useEffect(()=>{const wsurl=API.replace(/^http/,'ws'),ws=new WebSocket(wsurl);ws.onopen=()=>setStatus('LIVE');ws.onclose=()=>setStatus('OFFLINE');ws.onerror=()=>setStatus('ERROR');ws.onmessage=e=>{try{setEvents(v=>[JSON.parse(e.data),...v].slice(0,200))}catch{}};const load=async()=>{try{const [m,d]=await Promise.all([fetch(`${API}/api/metrics`,{cache:'no-store'}),fetch(`${API}/api/dex`,{cache:'no-store'})]);setMetrics(await m.json());setDexes(await d.json())}catch{setStatus('OFFLINE')}};load();const timer=setInterval(load,3000);return()=>{ws.close();clearInterval(timer)}},[]);
