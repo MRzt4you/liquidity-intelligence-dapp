@@ -1,5 +1,7 @@
+declare const WebSocketPair: any;
+
 type Env = {
-  ASSETS: Fetcher;
+  ASSETS: any;
   SOLANA_WS_URL?: string;
   BNB_WS_URL?: string;
   PUMPPORTAL_WS_URL?: string;
