@@ -10,7 +10,7 @@ services:
       - key: API_PORT
         value: "10000"
       - key: SOLANA_WS_URL
-        sync: false
+        value: wss://api.mainnet-beta.solana.com
       - key: BNB_WS_URL
         sync: false
       - key: PUMPPORTAL_WS_URL
@@ -19,13 +19,3 @@ services:
         value: ""
       - key: BNB_LOG_TOPICS
         value: ""
-
-  - type: web
-    name: liquidity-intelligence-web
-    runtime: node
-    rootDir: apps/web
-    buildCommand: npm install && npm run build
-    startCommand: npm start
-    envVars:
-      - key: NEXT_PUBLIC_API_URL
-        value: https://liquidity-intelligence-api.onrender.com
