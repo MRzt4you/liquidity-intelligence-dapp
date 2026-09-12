@@ -6,6 +6,7 @@ type Env = {
   BNB_WS_URL?: string;
   PUMPPORTAL_WS_URL?: string;
 };
+type EventItem = Record<string, any> & { ts:number };
 
 const DEXES = [
   { id:'pancakeswap-v2', name:'PancakeSwap V2', chain:'bnb', kind:'v2' },
@@ -30,22 +31,48 @@ const SOLANA_PROGRAMS: Record<string,string> = {
   'meteora-damm':'Eo7WjKq67rjJQSZxS6z3YkapzY3eMj6Xy8X5EQVn5UaB'
 };
 
+const state = {
+  events: [] as EventItem[],
+  signals: [] as EventItem[],
+  startedAt: Date.now(),
+  metrics: {solanaEvents:0,bnbEvents:0,pumpEvents:0,latencyMs:0,sources:{solana:'STARTING',bnb:'NOT_CONFIGURED',pumpportal:'STARTING'} as Record<string,string>,dexEvents:{} as Record<string,number>}
+};
+
 const json = (data:unknown,status=200) => new Response(JSON.stringify(data), {
   status, headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store'}
 });
 
+function record(event:EventItem) {
+  const e={...event,ts:Number(event.ts||Date.now())};
+  state.metrics.latencyMs=Math.max(0,Date.now()-e.ts);
+  if(e.chain==='solana') state.metrics.solanaEvents++;
+  if(e.chain==='bnb') state.metrics.bnbEvents++;
+  if(e.source==='pump.fun/pumpswap') state.metrics.pumpEvents++;
+  if(e.dex) state.metrics.dexEvents[e.dex]=(state.metrics.dexEvents[e.dex]||0)+1;
+  if(e.type==='chain_status') {
+    const key=e.source==='pumpportal'?'pumpportal':e.chain;
+    if(key) state.metrics.sources[key]=e.status||'UNKNOWN';
+  }
+  state.events.unshift(e);
+  state.events=state.events.slice(0,500);
+  if((e.type==='trade'||e.type==='token_create') && e.side && Number(e.amountQuote||0)>0) {
+    const amount=Number(e.amountQuote);
+    const signal={type:'market_signal',chain:e.chain,source:e.source,dex:e.dex,token:e.token||e.mint,side:e.side,amountQuote:amount,score:e.side==='buy'?60:40,state:e.side==='buy'?'BUY_WATCH':'RISK_WATCH',reason:'Derived only from observed on-chain event fields',ts:e.ts};
+    state.signals.unshift(signal); state.signals=state.signals.slice(0,100);
+  }
+}
+
 function api(path:string, env:Env) {
   if(path==='/api/dex') return json(DEXES);
-  if(path==='/api/status') return json({mode:'REAL_DATA_ONLY',dataPolicy:'NO_DATA_NO_FALLBACK',cloudflare:true,bnbConfigured:Boolean(env.BNB_WS_URL),dexes:DEXES});
-  if(path==='/api/metrics') return json({mode:'REAL_DATA_ONLY',dataPolicy:'NO_DATA_NO_FALLBACK',solanaEvents:0,bnbEvents:0,pumpEvents:0,latencyMs:0,sources:{solana:'READY',bnb:env.BNB_WS_URL?'READY':'NOT_CONFIGURED',pumpportal:'READY'},dexEvents:{}});
-  if(path==='/api/signals') return json([]);
-  if(path==='/api/events') return json([]);
+  if(path==='/api/status') return json({mode:'REAL_DATA_ONLY',dataPolicy:'NO_DATA_NO_FALLBACK',cloudflare:true,bnbConfigured:Boolean(env.BNB_WS_URL),uptimeSec:Math.floor((Date.now()-state.startedAt)/1000),eventCount:state.events.length,dexes:DEXES});
+  if(path==='/api/metrics') return json({mode:'REAL_DATA_ONLY',dataPolicy:'NO_DATA_NO_FALLBACK',...state.metrics,eventCount:state.events.length});
+  if(path==='/api/signals') return json(state.signals);
+  if(path==='/api/events') return json(state.events.slice(0,200));
   return null;
 }
 
 function bridge(request:Request, env:Env) {
-  const upgrade=request.headers.get('Upgrade')?.toLowerCase();
-  if(upgrade!=='websocket') return new Response('WebSocket upgrade required',{status:426});
+  if(request.headers.get('Upgrade')?.toLowerCase()!=='websocket') return new Response('WebSocket upgrade required',{status:426});
   const pair=new WebSocketPair();
   const client=pair[0], server=pair[1];
   server.accept();
@@ -58,28 +85,30 @@ function bridge(request:Request, env:Env) {
     try {
       const ws=new WebSocket(url); upstreams.push(ws);
       ws.addEventListener('open',()=>{
-        if(kind==='solana') Object.entries(SOLANA_PROGRAMS).forEach(([_,program],i)=>ws.send(JSON.stringify({jsonrpc:'2.0',id:i+1,method:'logsSubscribe',params:[{mentions:[program]},{commitment:'confirmed'}]})));
+        if(kind==='solana') Object.entries(SOLANA_PROGRAMS).forEach(([,program],i)=>ws.send(JSON.stringify({jsonrpc:'2.0',id:i+1,method:'logsSubscribe',params:[{mentions:[program]},{commitment:'confirmed'}]})));
         else if(kind==='bnb') { ws.send(JSON.stringify({jsonrpc:'2.0',id:1,method:'eth_subscribe',params:['newHeads']})); ws.send(JSON.stringify({jsonrpc:'2.0',id:2,method:'eth_subscribe',params:['logs',{}]})); }
         else { ws.send(JSON.stringify({method:'subscribeNewToken'})); ws.send(JSON.stringify({method:'subscribeMigration'})); }
-        send({type:'chain_status',chain:kind==='pumpportal'?'solana':kind,source:kind==='pumpportal'?'pumpportal':kind==='bnb'?'bsc-rpc':'solana-rpc',status:'LIVE',ts:Date.now()});
+        const event={type:'chain_status',chain:kind==='pumpportal'?'solana':kind,source:kind==='pumpportal'?'pumpportal':kind==='bnb'?'bsc-rpc':'solana-rpc',status:'LIVE',ts:Date.now()}; record(event); send(event);
       });
       ws.addEventListener('message',(ev:any)=>{
         try {
           const raw=typeof ev.data==='string'?ev.data:new TextDecoder().decode(ev.data); const m=JSON.parse(raw);
+          let event:EventItem|null=null;
           if(kind==='solana' && m.method==='logsNotification') {
             const value=m.params?.result?.value, logs=value?.logs||[]; const hit=Object.entries(SOLANA_PROGRAMS).find(([,p])=>logs.some((l:string)=>l.includes(p)));
-            send({type:'log',chain:'solana',source:'solana-rpc',ts:Date.now(),txHash:value?.signature,slot:m.params?.result?.context?.slot,dex:hit?.[0],eventName:'program_log',raw:m});
+            event={type:'log',chain:'solana',source:'solana-rpc',ts:Date.now(),txHash:value?.signature,slot:m.params?.result?.context?.slot,dex:hit?.[0],eventName:'program_log'};
           } else if(kind==='bnb' && m.method==='eth_subscription') {
             const e=m.params?.result;
-            if(e?.number) send({type:'block',chain:'bnb',source:'bsc-rpc',ts:Date.now(),blockNumber:parseInt(e.number,16),raw:e});
-            else if(e) send({type:'log',chain:'bnb',source:'bsc-rpc',ts:Date.now(),txHash:e.transactionHash,blockNumber:e.blockNumber?parseInt(e.blockNumber,16):undefined,pool:e.address,eventName:e.topics?.[0],raw:e});
+            if(e?.number) event={type:'block',chain:'bnb',source:'bsc-rpc',ts:Date.now(),blockNumber:parseInt(e.number,16)};
+            else if(e) event={type:'log',chain:'bnb',source:'bsc-rpc',ts:Date.now(),txHash:e.transactionHash,blockNumber:e.blockNumber?parseInt(e.blockNumber,16):undefined,pool:e.address,eventName:e.topics?.[0]};
           } else if(kind==='pumpportal') {
             const type=raw.includes('migration')||raw.includes('complete')?'migration':'token_create';
-            send({type,chain:'solana',source:'pump.fun/pumpswap',ts:Date.now(),dex:'pumpfun-pumpswap',raw:m,token:m.mint||m.token,creator:m.traderPublicKey||m.creator});
+            event={type,chain:'solana',source:'pump.fun/pumpswap',ts:Date.now(),dex:'pumpfun-pumpswap',token:m.mint||m.token,creator:m.traderPublicKey||m.creator};
           }
+          if(event){record(event);send(event);}
         } catch {}
       });
-      ws.addEventListener('close',()=>send({type:'chain_status',chain:kind==='pumpportal'?'solana':kind,source:kind==='pumpportal'?'pumpportal':kind==='bnb'?'bsc-rpc':'solana-rpc',status:'OFFLINE',ts:Date.now()}));
+      ws.addEventListener('close',()=>{const event={type:'chain_status',chain:kind==='pumpportal'?'solana':kind,source:kind==='pumpportal'?'pumpportal':kind==='bnb'?'bsc-rpc':'solana-rpc',status:'OFFLINE',ts:Date.now()};record(event);send(event)});
     } catch {}
   };
   connect(env.SOLANA_WS_URL||'wss://api.mainnet-beta.solana.com','solana');
