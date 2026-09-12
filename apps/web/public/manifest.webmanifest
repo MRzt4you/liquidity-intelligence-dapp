@@ -1,0 +1,10 @@
+{
+  "name": "HANZI Liquidity Intelligence Terminal",
+  "short_name": "HANZI",
+  "description": "Real-data on-chain liquidity intelligence for Solana and BNB Chain.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#05080b",
+  "theme_color": "#05080b",
+  "icons": []
+}
