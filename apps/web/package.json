@@ -1,7 +1,7 @@
 {
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "next build --webpack",
     "start": "next start",
     "type-check": "tsc --noEmit"
   },
@@ -9,9 +9,7 @@
     "next": "^16.3.5",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "recharts": "^2.12.0"
-  },
-  "devDependencies": {
+    "recharts": "^2.12.0",
     "typescript": "^5.3.3",
     "@types/node": "^20.10.0",
     "@types/react": "^19.0.0",
