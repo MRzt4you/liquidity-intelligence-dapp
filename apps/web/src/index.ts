@@ -38,7 +38,7 @@ const TOPIC = {
   sync: '0x1c411e9a96e071241c2f21f7726b17ae89e3cab4c78be50e062b03a9fffbbad1',
   mint: '0x4c209b5fc8ad50758f13e2e1088ba56a560dff690a1c6fef26394f4c03821c4f',
   burn: '0xdccd412f0b1252819cb1fd330b93224ca42612892bb3f4f789976e6d81936496',
-  transfer: '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef',
+  transfer: '0xddf252ad1be2c89c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef',
 };
 const state = {
   events: [] as EventItem[], signals: [] as EventItem[], pumpTokens: new Map<string, PumpToken>(), startedAt: Date.now(),
@@ -68,7 +68,7 @@ function updatePumpToken(input: Partial<PumpToken> & { mint?: string; ts?: numbe
   const mint = input.mint; if (!mint) return; const now = Number(input.ts || Date.now());
   const current = state.pumpTokens.get(mint) || { mint, createdAt: now, firstSeenAt: now, trades: 0, buys: 0, sells: 0, inflowSol: 0, outflowSol: 0, risk: 'UNRATED' as const, riskReasons: [] };
   const next = { ...current, ...input } as PumpToken; next.firstSeenAt = current.firstSeenAt; next.risk = riskForPumpToken(next); state.pumpTokens.set(mint, next);
-  if (state.pumpTokens.size > 300) { const oldest = [...state.pumpTokens.values()].sort((a, b) => a.firstSeenAt - b.firstSeenAt)[0]; if (oldest?.mint) state.pumpTokens.delete(oldest.mint); }
+  if (state.pumpTokens.size > 1000) { const oldest = [...state.pumpTokens.values()].sort((a, b) => a.firstSeenAt - b.firstSeenAt)[0]; if (oldest?.mint) state.pumpTokens.delete(oldest.mint); }
 }
 function record(event: EventItem) {
   const e = { ...event, ts: Number(event.ts || Date.now()) }; state.metrics.latencyMs = Math.max(0, Date.now() - e.ts);
@@ -111,7 +111,16 @@ async function solanaDetails(signature: string | undefined, dex: string | undefi
   } catch { return null; }
 }
 function pumpEvent(raw: string, m: any): EventItem {
-  const pool = m.pool || m.poolId || m.exchange; const txType = String(m.txType || m.type || m.side || '').toLowerCase(); const isMigration = txType.includes('migrat') || raw.toLowerCase().includes('migration'); const isTrade = Boolean(m.txType || m.side || m.tokenAmount || m.solAmount || m.baseAmount || m.quoteAmount); const type = isMigration ? 'migration' : isTrade ? 'trade' : 'token_create'; const side = txType.includes('sell') ? 'sell' : txType.includes('buy') ? 'buy' : undefined; const amountQuote = Number(m.solAmount ?? m.quoteAmount ?? m.bnbAmount ?? m.amountQuote ?? 0) || undefined;
+  const pool = m.pool || m.poolId || m.exchange;
+  const txType = String(m.txType || m.type || '').toLowerCase();
+  const sideRaw = String(m.side || '').toLowerCase();
+  const isMigration = txType.includes('migrat') || String(m.type || '').toLowerCase().includes('migrat') || raw.toLowerCase().includes('migration');
+  const isBuy = sideRaw === 'buy' || txType === 'buy' || txType.includes('buy');
+  const isSell = sideRaw === 'sell' || txType === 'sell' || txType.includes('sell');
+  const isTrade = isBuy || isSell || Boolean(m.solAmount || m.baseAmount || m.quoteAmount || m.tokenAmount || m.amountQuote) && !['create','created','token_create','new_token'].includes(txType);
+  const type = isMigration ? 'migration' : isTrade ? 'trade' : 'token_create';
+  const side = isBuy ? 'buy' : isSell ? 'sell' : undefined;
+  const amountQuote = Number(m.solAmount ?? m.quoteAmount ?? m.bnbAmount ?? m.amountQuote ?? 0) || undefined;
   return { type, chain: 'solana', source: 'pump.fun/pumpswap', ts: Number(m.timestamp || m.created_timestamp || Date.now()), dex: pool || 'pumpfun-pumpswap', token: m.mint || m.token || m.ca, creator: m.traderPublicKey || m.creator || m.user, txHash: m.signature || m.tx || m.txHash, side, amountQuote, tokenAmount: m.tokenAmount || m.token_amount, initialBuy: m.initialBuy, marketCapSol: m.marketCapSol, vSolInBondingCurve: m.vSolInBondingCurve, vTokensInBondingCurve: m.vTokensInBondingCurve, bondingCurveKey: m.bondingCurveKey, name: m.name, symbol: m.symbol, uri: m.uri, pool };
 }
 function bridge(request: Request, env: Env) {
