@@ -1,1 +1,40 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="533" viewBox="0 0 1600 533"><image width="1600" height="533" href="data:image/webp;base64,UklGRiQAAABXRUJQVlA4IBgAAAAwAQCdASoQAAkAAUAmJYgCdAD0AA=="/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2048 682" preserveAspectRatio="xMidYMid slice">
+<defs>
+ <linearGradient id="g" x1="0" x2="1"><stop stop-color="#000"/><stop offset=".55" stop-color="#08090b"/><stop offset="1" stop-color="#000"/></linearGradient>
+ <radialGradient id="r"><stop stop-color="#2a2d31"/><stop offset="1" stop-color="#050608"/></radialGradient>
+ <filter id="blur"><feGaussianBlur stdDeviation="14"/></filter>
+</defs>
+<rect width="2048" height="682" fill="url(#g)"/>
+<g opacity=".18" stroke="#fff" fill="none">
+ <path d="M0 560 Q180 430 360 545 T720 520 T1060 550 T1420 500 T1740 545 T2048 480" stroke-width="3"/>
+ <path d="M0 600 Q210 500 420 585 T820 570 T1200 600 T1600 555 T2048 570" stroke-width="2"/>
+</g>
+<g fill="#fff" opacity=".9" font-family="serif">
+ <text x="120" y="300" font-size="250">漢</text>
+ <text x="1370" y="185" font-family="Arial,sans-serif" font-size="88" letter-spacing="24">HANZI</text>
+ <text x="1378" y="225" font-family="Arial,sans-serif" font-size="17" letter-spacing="7">THE MEME WRITTEN IN HANZI</text>
+</g>
+<g opacity=".28" stroke="#fff" stroke-width="5" fill="none">
+ <path d="M1870 0 Q1810 90 1890 170 T1860 340 T1920 500"/>
+ <path d="M1990 0 Q1930 110 2010 220 T1980 430 T2048 650"/>
+ <path d="M50 640 L220 430 L370 610 L510 470 L650 620"/>
+</g>
+<g transform="translate(720 120)">
+ <circle cx="310" cy="150" r="155" fill="url(#r)" opacity=".9"/>
+ <path d="M155 170 Q170 15 310 0 Q450 15 470 170 L430 300 L190 300 Z" fill="#111317" stroke="#aaa" stroke-width="4"/>
+ <path d="M190 120 Q205 55 310 48 Q415 55 430 120 Q400 92 310 92 Q220 92 190 120Z" fill="#262a2e"/>
+ <ellipse cx="310" cy="172" rx="108" ry="100" fill="#ececec"/>
+ <path d="M260 160 l35 -8 l-18 17 M360 160 l-35 -8 l18 17" stroke="#111" stroke-width="9" fill="none" stroke-linecap="round"/>
+ <path d="M205 285 Q310 335 415 285 L470 510 L150 510 Z" fill="#090b0e" stroke="#777" stroke-width="3"/>
+ <text x="272" y="360" font-size="65" fill="#eee">漢</text>
+ <path d="M155 320 L55 250 M465 320 L560 250" stroke="#555" stroke-width="24"/>
+ <path d="M150 510 L55 575 M470 510 L565 575" stroke="#111" stroke-width="55"/>
+ <path d="M35 575 L145 575 L160 625 L15 625 Z M455 575 L565 575 L585 625 L440 625 Z" fill="#d9d9d9"/>
+</g>
+<g font-family="Arial,sans-serif" fill="#fff">
+ <text x="120" y="410" font-size="19" letter-spacing="6" opacity=".65">COMMUNITY · MEMES · CHAOS</text>
+ <text x="1370" y="270" font-size="18" letter-spacing="4" opacity=".7">REAL-TIME DEX / PUMP.FUN / FLAP.SH</text>
+ <text x="1370" y="610" font-size="25" letter-spacing="5">EVERY PRICE DISLOCATION = OPPORTUNITY</text>
+</g>
+<rect x="0" y="681" width="2048" height="1" fill="#fff" opacity=".2"/>
+</svg>
