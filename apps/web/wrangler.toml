@@ -1,3 +1,8 @@
-name = "hanzi-liquidity-intelligence"
+name = "liquidity-intelligence-dapp"
+main = "src/index.ts"
 compatibility_date = "2026-09-12"
-pages_build_output_dir = "out"
+
+[assets]
+directory = "./out"
+binding = "ASSETS"
+run_worker_first = ["/api/*", "/ws", "/health"]
