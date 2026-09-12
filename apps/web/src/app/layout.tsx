@@ -1,10 +1,14 @@
 // src/app/layout.tsx
 import type { Metadata } from 'next';
+import Header from '@/components/Header';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Liquidity Intelligence DApp',
+  title: 'Liquidity Hunter - DEX Monitor',
   description: 'Real-time liquidity hunting and monitoring dashboard',
+  icons: {
+    icon: '🎯',
+  },
 };
 
 export default function RootLayout({
@@ -14,7 +18,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="bg-gray-900 text-white">{children}</body>
+      <body className="bg-gray-900 text-white">
+        <Header />
+        {children}
+      </body>
     </html>
   );
 }
